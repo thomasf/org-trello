@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>Org-trello by ardumont</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>Org-trello</h1>
+        <h2>Minor emacs mode for org-mode, 2-way synchronization between org-mode file and trello board</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/ardumont/org-trello/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/ardumont/org-trello/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/ardumont/org-trello" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>
+<a name="org-trello" class="anchor" href="#org-trello"><span class="octicon octicon-link"></span></a>org-trello</h1>
+
+<p><a href="https://travis-ci.org/ardumont/org-trello"><img src="https://travis-ci.org/ardumont/org-trello.png?branch=master" alt="Build Status"></a></p>
+
+<p>Minor emacs mode for org-mode - 2-way synchronization between org-mode file and trello board</p>
+
+<p><strong>Table of Contents</strong>  <em>generated with <a href="http://doctoc.herokuapp.com/">DocToc</a></em></p>
+
+<ul>
+<li><a href="#org-trello">org-trello</a></li>
+<li><a href="#why">why?</a></li>
+<li><a href="#emacs-version">Emacs version</a></li>
+<li>
+<a href="#tl;dr">TL;DR</a>
+
+<ul>
+<li><a href="#fast-help">Fast help</a></li>
+<li><a href="#demo">Demo</a></li>
+</ul>
+</li>
+<li><a href="#contributions">Contributions</a></li>
+<li><a href="#release-notes">Release notes</a></li>
+<li>
+<a href="#install">Install</a>
+
+<ul>
+<li><a href="#marmalade---stable-version">marmalade - Stable version</a></li>
+<li><a href="#melpa---%7Esnapshot">melpa - ~snapshot</a></li>
+<li><a href="#org-trello-1">org-trello</a></li>
+<li><a href="#github">github</a></li>
+<li><a href="#example">Example</a></li>
+</ul>
+</li>
+<li>
+<a href="#setup">Setup</a>
+
+<ul>
+<li><a href="#emacs-related">Emacs related</a></li>
+<li>
+<a href="#trello-related">Trello related</a>
+
+<ul>
+<li><a href="#keys">keys</a></li>
+<li>
+<a href="#sync-org-to-trello">Sync org to trello</a>
+
+<ul>
+<li><a href="#pre-requisite">pre-requisite</a></li>
+<li><a href="#sync-your-org-mode-buffer">Sync your org-mode buffer</a></li>
+</ul>
+</li>
+<li><a href="#create-a-board">Create a board</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#bindings">Bindings</a></li>
+<li>
+<a href="#use-cases">Use cases</a>
+
+<ul>
+<li><a href="#setup-1">Setup</a></li>
+<li><a href="#creation-step-by-step">Creation step-by-step</a></li>
+<li><a href="#card-and-deadlinedue-date">Card and deadline/due date</a></li>
+<li><a href="#checklist-and-transitivity">Checklist and transitivity</a></li>
+<li><a href="#creation-full-entity">Creation full entity</a></li>
+<li><a href="#sync-org-mode-file-to-trello-board">Sync org-mode file to trello board</a></li>
+<li><a href="#sync-org-mode-file-from-trello-board">Sync org-mode file from trello board</a></li>
+<li><a href="#remove-entity">Remove entity</a></li>
+</ul>
+</li>
+<li><a href="#errors">Errors</a></li>
+<li><a href="#license">License</a></li>
+</ul><h1>
+<a name="why" class="anchor" href="#why"><span class="octicon octicon-link"></span></a>why?</h1>
+
+<ul>
+<li>
+<a href="http://orgmode.org/">org-mode</a> is what I need.</li>
+<li>
+<a href="http://trello.com/">Trello</a> is what my team need.</li>
+<li>
+<a href="https://github.com/ardumont/org-trello">org-trello</a> may satisfy everybody.</li>
+</ul><h1>
+<a name="emacs-version" class="anchor" href="#emacs-version"><span class="octicon octicon-link"></span></a>Emacs version</h1>
+
+<p>Tested on GNU Emacs 24.1.1 (x86_64-pc-linux-gnu, X toolkit, Xaw3d scroll bars) of 2012-09-22 on batsu, modified by Debian</p>
+
+<h1>
+<a name="tldr" class="anchor" href="#tldr"><span class="octicon octicon-link"></span></a>TL;DR</h1>
+
+<h2>
+<a name="fast-help" class="anchor" href="#fast-help"><span class="octicon octicon-link"></span></a>Fast help</h2>
+
+<p>Yank this into a scratch buffer:</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">'package</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">add-to-list</span> <span class="ss">'package-archives</span> <span class="o">'</span><span class="p">(</span><span class="s">"melpa"</span> <span class="o">.</span> <span class="s">"http://melpa.milkbox.net/packages/"</span><span class="p">)</span> <span class="no">t</span><span class="p">)</span>
+<span class="c1">;; or (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/"))</span>
+<span class="p">(</span><span class="nv">package-initialize</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">package-install</span> <span class="ss">'org-trello</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">require</span> <span class="ss">'org-trello</span><span class="p">)</span>
+</pre></div>
+
+<p>then <code>M-x eval-buffer</code></p>
+
+<p>Now open an org-mode buffer, then hit: <code>C-c o h</code></p>
+
+<h2>
+<a name="demo" class="anchor" href="#demo"><span class="octicon octicon-link"></span></a>Demo</h2>
+
+<ul>
+<li><a href="http://youtu.be/e3NzllAHbHY">Install</a></li>
+<li><a href="http://youtu.be/ReUp1Wn5scc">Setup key and token</a></li>
+<li><a href="http://youtu.be/2PT8K1HG-eY">Attach org-mode file to one trello board</a></li>
+<li><a href="http://youtu.be/ILPs74L5LFU">Synchronize one entity</a></li>
+<li><a href="http://youtu.be/H8DXm5BLaD0">Synchronize one complete entity and move entity according to status</a></li>
+<li><a href="http://youtu.be/d6SATWzhQhs">Synchronize from org-mode file to trello</a></li>
+<li><a href="http://youtu.be/-ldo8gvhaTY">Synchronize from trello to org-mode files</a></li>
+<li><a href="http://youtu.be/6k4zRm6t8ZY">Create board and sync</a></li>
+<li>Delete entity - no video yet</li>
+<li>Setup org-mode keyword list + create board - no video yet</li>
+<li>Check the setup - no video yet</li>
+</ul><h1>
+<a name="contributions" class="anchor" href="#contributions"><span class="octicon octicon-link"></span></a>Contributions</h1>
+
+<ul>
+<li>Pull Requests welcome (cf. <a href="./TODO.org">todo</a> - better read on emacs's org-mode buffer)</li>
+<li>Appreciate any feedback</li>
+<li>Open issues if you want something to be done</li>
+<li>Open issues for bugs too (please describe maximum inputs, version, <em>Messages</em> buffer, stacktrace, etc...)</li>
+<li><a href="./TODO.org">What has been done and remains to be done</a></li>
+</ul><h1>
+<a name="release-notes" class="anchor" href="#release-notes"><span class="octicon octicon-link"></span></a>Release notes</h1>
+
+<p><a href="./release-notes.md">Release notes</a></p>
+
+<h1>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h1>
+
+<h2>
+<a name="marmalade---stable-version" class="anchor" href="#marmalade---stable-version"><span class="octicon octicon-link"></span></a>marmalade - Stable version</h2>
+
+<p>Add this to your emacs's init file (~/.emacs, ~/.emacs.d/init.el, or <em>scratch</em>, or whatnot...)</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">'package</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nv">add-to-list</span> <span class="ss">'package-archives</span> <span class="o">'</span><span class="p">(</span><span class="s">"melpa"</span> <span class="o">.</span> <span class="s">"http://melpa.milkbox.net/packages/"</span><span class="p">)</span> <span class="no">t</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nv">package-initialize</span><span class="p">)</span>
+</pre></div>
+
+<p>Then hit <code>M-x eval-buffer</code> to evaluate the buffer's contents.</p>
+
+<h2>
+<a name="melpa---snapshot" class="anchor" href="#melpa---snapshot"><span class="octicon octicon-link"></span></a>melpa - ~snapshot</h2>
+
+<p>Add this to your emacs's init file (~/.emacs, ~/.emacs.d/init.el, or <em>scratch</em>, or whatnot...)</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">'package</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nv">add-to-list</span> <span class="ss">'package-archives</span> <span class="o">'</span><span class="p">(</span><span class="s">"marmalade"</span> <span class="o">.</span> <span class="s">"http://marmalade-repo.org/packages/"</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nv">package-initialize</span><span class="p">)</span>
+</pre></div>
+
+<p>Then hit <code>M-x eval-buffer</code> to evaluate the buffer's contents.</p>
+
+<h2>
+<a name="org-trello-1" class="anchor" href="#org-trello-1"><span class="octicon octicon-link"></span></a>org-trello</h2>
+
+<p>To install org-trello:</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">not</span> <span class="nv">package-archive-contents</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">package-refresh-contents</span><span class="p">))</span>
+
+<span class="c1">;; Add in your own as you wish:</span>
+<span class="p">(</span><span class="nb">defvar</span> <span class="nv">my-packages</span> <span class="o">'</span><span class="p">(</span><span class="nv">org-trello</span><span class="p">)</span>
+  <span class="s">"A list of packages to ensure are installed at launch."</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nb">dolist</span> <span class="p">(</span><span class="nv">p</span> <span class="nv">my-packages</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">not</span> <span class="p">(</span><span class="nv">package-installed-p</span> <span class="nv">p</span><span class="p">))</span>
+    <span class="p">(</span><span class="nv">package-install</span> <span class="nv">p</span><span class="p">)))</span>
+</pre></div>
+
+<p>Again hit <code>M-x eval-buffer</code>.</p>
+
+<h2>
+<a name="github" class="anchor" href="#github"><span class="octicon octicon-link"></span></a>github</h2>
+
+<p>Download org-trello from GitHub</p>
+
+<div class="highlight"><pre>git clone http://github.com/ardumont/org-trello.git
+</pre></div>
+
+<p>Add the org-trello directory to your load path and then add</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nv">add-to-list</span> <span class="ss">'load-path</span> <span class="s">"/path/to/org-trello/"</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">require</span> <span class="ss">'org-trello</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="example" class="anchor" href="#example"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<ul>
+<li><a href="https://github.com/ardumont/install-packages-pack/blob/master/init.el">Adding emacs repository</a></li>
+<li><a href="https://github.com/ardumont/orgmode-pack/blob/master/init.el#L1">Installing org-trello</a></li>
+</ul><h1>
+<a name="setup" class="anchor" href="#setup"><span class="octicon octicon-link"></span></a>Setup</h1>
+
+<h2>
+<a name="emacs-related" class="anchor" href="#emacs-related"><span class="octicon octicon-link"></span></a>Emacs related</h2>
+
+<p>Org-trello is a minor mode for org-mode to sync.
+Simply, require it somewhere in your load file (~/.emacs or ~/.emacs.d/init.el).</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">'orgtrello</span><span class="p">)</span>
+</pre></div>
+
+<p>For example, here is my <a href="https://github.com/ardumont/orgmode-pack/blob/master/init.el#L3">startup file</a>.</p>
+
+<h2>
+<a name="trello-related" class="anchor" href="#trello-related"><span class="octicon octicon-link"></span></a>Trello related</h2>
+
+<h3>
+<a name="keys" class="anchor" href="#keys"><span class="octicon octicon-link"></span></a>keys</h3>
+
+<p>Install the consumer-key and the read-write token for org-trello to be able to work in your name with your trello boards.</p>
+
+<p><code>C-c o i</code></p>
+
+<p>or</p>
+
+<div class="highlight"><pre><span class="nv">M-x</span> <span class="nv">org-trello/install-key-and-token</span>
+</pre></div>
+
+<h3>
+<a name="sync-org-to-trello" class="anchor" href="#sync-org-to-trello"><span class="octicon octicon-link"></span></a>Sync org to trello</h3>
+
+<h4>
+<a name="pre-requisite" class="anchor" href="#pre-requisite"><span class="octicon octicon-link"></span></a>pre-requisite</h4>
+
+<p>Beware, this step implicitely requires you to prepare your trello board by creating the needed list (in accordance to your org-mode keywords, cf. <a href="https://www.gnu.org/software/emacs/manual/html_node/org/Per_002dfile-keywords.html">org-todo-keywords</a>).</p>
+
+<p>For example, you could either use the following keywords globally:</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">org-todo-keywords</span>
+   <span class="o">'</span><span class="p">((</span><span class="nc">sequence</span> <span class="s">"TODO"</span> <span class="s">"IN-PROGRESS"</span> <span class="s">"PENDING"</span> <span class="s">"|"</span>  <span class="s">"DONE"</span> <span class="s">"FAIL"</span> <span class="s">"DELEGATED"</span> <span class="s">"CANCELLED"</span><span class="p">)))</span>
+</pre></div>
+
+<p>Or, you could also setup your org-mode file locally, adding this as a org-mode header in your file (cf. <a href="https://www.gnu.org/software/emacs/manual/html_node/org/Per_002dfile-keywords.html">previous link</a>):</p>
+
+<pre lang="orgmode"><code>#+TODO: TODO IN-PROGRESS PENDING | DONE FAIL DELEGATED CANCELLED
+</code></pre>
+
+<p>Either way, you need to create the list "TODO", "IN-PROGRESS", "PENDING", "DONE", "FAIL", "DELEGATED", and "CANCELLED" in your trello board before launching the routine to setup your org-mode buffer.</p>
+
+<h4>
+<a name="sync-your-org-mode-buffer" class="anchor" href="#sync-your-org-mode-buffer"><span class="octicon octicon-link"></span></a>Sync your org-mode buffer</h4>
+
+<p>For each org-mode file, you need to connect your org-mode file with a trello board.</p>
+
+<p><code>C-c o I</code></p>
+
+<p>or</p>
+
+<div class="highlight"><pre><span class="nv">M-x</span> <span class="nv">org-trello/install-board-and-lists-ids</span>
+</pre></div>
+
+<p>A simpler way could be to create a board from scratch (if you can).</p>
+
+<h3>
+<a name="create-a-board" class="anchor" href="#create-a-board"><span class="octicon octicon-link"></span></a>Create a board</h3>
+
+<p>You can avoid the previous step and create directly a board from your org-mode file.
+This will create the list from the keywords you use in your org-mode (cf. <a href="http://orgmode.org/manual/In_002dbuffer-settings.html">org-todo-keywords</a>).</p>
+
+<p><code>C-c o b</code></p>
+
+<p>or</p>
+
+<div class="highlight"><pre><span class="nv">M-x</span> <span class="nv">org-trello/create-board</span>
+</pre></div>
+
+<h1>
+<a name="bindings" class="anchor" href="#bindings"><span class="octicon octicon-link"></span></a>Bindings</h1>
+
+<p>Actual bindings (not definitive, suggestions regarding those bindings are welcome):</p>
+
+<ul>
+<li>C-c o i - M-x org-trello/install-key-and-token       - Install the keys and the access-token.</li>
+<li>C-c o I - M-x org-trello/install-board-and-lists-ids - Select the board and attach the todo, doing and done list.</li>
+<li>C-c o b - M-x org-trello/create-board                - Create interactively a board and attach the org-mode file to this trello board.</li>
+<li>C-c o c - M-x org-trello/create-simple-entity        - Create/Update an entity (card/checklist/item) depending on its level and status. Do not deal with level superior to 4.</li>
+<li>C-c o C - M-x org-trello/create-complex-entity       - Create/Update a complete entity card/checklist/item and its subtree (depending on its level).</li>
+<li>C-c o s - M-x org-trello/sync-to-trello              - Synchronize the org-mode file to the trello board (org-mode -&gt; trello).</li>
+<li>C-c o S - M-x org-trello/sync-from-trello            - Synchronize the org-mode file from the trello board (trello -&gt; org-mode).</li>
+<li>C-c o k - M-x org-trello/kill-entity                 - Kill the entity (and its arborescence tree).</li>
+<li>C-c o d - M-x org-trello/check-setup                 - Simple routine to check that the setup is ok. If everything is ok, will simply display 'Setup ok!'</li>
+<li>C-c o h - M-x org-trello/help-describing-bindings    - This help message.</li>
+</ul><h1>
+<a name="use-cases" class="anchor" href="#use-cases"><span class="octicon octicon-link"></span></a>Use cases</h1>
+
+<h2>
+<a name="setup-1" class="anchor" href="#setup-1"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<ol>
+<li><p>open an org-mode file</p></li>
+<li><p>Install the key and the token file (<code>C-c o i</code> or <code>M-x org-trello/install-key-and-token</code>).
+This will open your browser to retrieve the needed informations (<code>consumer-key</code> then the <code>access-token</code>) and wait for your input in emacs.</p></li>
+</ol><p><em>Remark:</em> This need to be done once and for all until you revoke such token.</p>
+
+<ol>
+<li>Setup your org-mode file with your trello board (<code>C-c o I</code> or <code>M-x org-trello/install-board-and-lists-ids</code>).
+This will present you a list of your actual boards. Select the one you want and hit enter.
+This will edit your org-mode file with properties needed.</li>
+</ol><p><em>Remarks:</em></p>
+
+<ul>
+<li>This need to be done once for each org-mode file you want to sync with a trello board.</li>
+<li>You can create directly a board (<code>C-c o b</code> or <code>M-x orgtrello/do-create-board-and-lists</code>)</li>
+</ul><p>Now you are ready to use org-mode as usual.</p>
+
+<h2>
+<a name="creation-step-by-step" class="anchor" href="#creation-step-by-step"><span class="octicon octicon-link"></span></a>Creation step-by-step</h2>
+
+<p>The idea is this, you have 3 levels:</p>
+
+<ul>
+<li>level 1 - Card</li>
+<li>level 2 - Checklist</li>
+<li>level 3 - Item</li>
+</ul><p>For example:</p>
+
+<pre lang="org-mode"><code>* card-identity (label mandatory)
+** checklist (label mandatory)
+*** task1 (label mandatory)
+*** task2 (label mandatory)
+*** task3 (label mandatory)
+</code></pre>
+
+<ul>
+<li>
+<p>Card:</p>
+
+<ul>
+<li>Place yourself on the <code>card-identity</code> and hit the binding <code>C-c o c</code>, this will create the card in the <code>TODO</code> column in your trello board.</li>
+<li>You can edit the label and hit <code>C-c o c</code> again, this time, this will update the label in trello</li>
+<li>Change the status from TODO to any intermediary status, then hit the binding, this will move the card to the list <code>DOING</code>.</li>
+<li>Once done, move the status of the card from anything to DONE, hit the binding, this will move the card to the list <code>DONE</code>.</li>
+</ul>
+</li>
+<li>
+<p>Checklist:</p>
+
+<ul>
+<li>Place yourself on the checklist <code>checklist</code>, hit the binding, this will add <code>checklist</code> as a checklist to your card <code>card-identity</code>
+</li>
+<li>Rename your checklist and hit again the binding to update its label.</li>
+</ul>
+</li>
+<li>
+<p>Task:</p>
+
+<ul>
+<li>Place yourself on your task and hit the binding, this will add the item to such checklist.</li>
+<li>Change the label of the task and hit the binding, this will update its label.</li>
+<li>Change the status of the task to <code>DONE</code> and hit the binding, this will check such item in trello.</li>
+</ul>
+</li>
+</ul><h2>
+<a name="card-and-deadlinedue-date" class="anchor" href="#card-and-deadlinedue-date"><span class="octicon octicon-link"></span></a>Card and deadline/due date</h2>
+
+<p>You can use <a href="http://orgmode.org/manual/Inserting-deadline_002fschedule.html">org-mode's deadline</a>, this is mapped to trello's due date notion during the synchronize step.</p>
+
+<h2>
+<a name="checklist-and-transitivity" class="anchor" href="#checklist-and-transitivity"><span class="octicon octicon-link"></span></a>Checklist and transitivity</h2>
+
+<p>By default now, the status of the checklist does transit to the items.
+Thus:</p>
+
+<ul>
+<li>if the status of the checklist is DONE, every item will be synced to DONE and the org-mode buffer will be updated accordingly.</li>
+<li>if the status of the checklist is TODO, every item will be synced to TODO and the org-mode buffer will be updated accordingly.</li>
+</ul><p>If you do not want this, you can disable it by adding those lines to your emacs's startup file:</p>
+
+<div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">'org-trello</span><span class="p">)</span>
+<span class="p">(</span><span class="k">setq</span> <span class="vg">*ORGTRELLO-CHECKLIST-UPDATE-ITEMS*</span> <span class="no">nil</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="creation-full-entity" class="anchor" href="#creation-full-entity"><span class="octicon octicon-link"></span></a>Creation full entity</h2>
+
+<p>You can sync all the entities and their arborescence once.
+Place yourself on the entity (card or checklist or item/task) and hit <code>C-c o C</code>.</p>
+
+<h2>
+<a name="sync-org-mode-file-to-trello-board" class="anchor" href="#sync-org-mode-file-to-trello-board"><span class="octicon octicon-link"></span></a>Sync org-mode file to trello board</h2>
+
+<p>You can sync all your org-mode file to trello.
+Hit <code>C-c o s</code>.</p>
+
+<h2>
+<a name="sync-org-mode-file-from-trello-board" class="anchor" href="#sync-org-mode-file-from-trello-board"><span class="octicon octicon-link"></span></a>Sync org-mode file from trello board</h2>
+
+<p>You can sync the content of your trello board into an org-mode file.
+Hit <code>C-c o S</code>.</p>
+
+<p>This will update any already present entry in the org-mode file and create the one not created yet.</p>
+
+<h2>
+<a name="remove-entity" class="anchor" href="#remove-entity"><span class="octicon octicon-link"></span></a>Remove entity</h2>
+
+<p>You can remove any entity and its arborescence with <code>C-c o k</code>.
+This will also remove the entry from the org-mode buffer.</p>
+
+<h1>
+<a name="errors" class="anchor" href="#errors"><span class="octicon octicon-link"></span></a>Errors</h1>
+
+<p>Here are the possible error messages you can have if trying to sync in bad conditions:</p>
+
+<ul>
+<li>
+<p>without setuping the consumer-key and the access-token:</p>
+
+<pre><code>- Setup problem - You need to install the consumer-key and the read/write access-token - C-c o i or M-x org-trello/install-board-and-lists-ids
+</code></pre>
+</li>
+<li>
+<p>without setuping the org-mode buffer:</p>
+
+<pre><code>- Setup problem.
+Either you did not connect your org-mode buffer with a trello board, to correct this:
+* attach to a board through C-c o I or M-x org-trello/install-board-and-lists-ids
+* or create a board from scratch with C-c o b or M-x org-trello/create-board).
+Either your org-mode's todo keyword list and your trello board lists are not named the same way (which they must).
+For this, connect to trello and rename your board's list according to your org-mode's todo list.
+Also, you can specify on your org-mode buffer the todo list you want to work with, for example: #+TODO: TODO DOING | DONE FAIL (hit C-c C-c to refresh the setup)
+</code></pre>
+</li>
+<li><p>If the board's list names are different from your org-mode's keyword list:</p></li>
+</ul><pre><code> - Setup problem.
+Either you did not connect your org-mode buffer with a trello board, to correct this:
+  * attach to a board through C-c o I or M-x org-trello/install-board-and-lists-ids
+  * or create a board from scratch with C-c o b or M-x org-trello/create-board).
+Either your org-mode's todo keyword list and your trello board lists are not named the same way (which they must).
+For this, connect to trello and rename your board's list according to your org-mode's todo list.
+Also, you can specify on your org-mode buffer the todo list you want to work with, for example: #+TODO: TODO DOING | DONE FAIL (hit C-c C-c to refresh the setup)
+</code></pre>
+
+<ul>
+<li>
+<p>no label on the card:</p>
+
+<pre><code>Cannot synchronize the card - missing mandatory label. Skip it...
+</code></pre>
+</li>
+<li>
+<p>no label on the checklist:</p>
+
+<pre><code>Cannot synchronize the checklist - missing mandatory label. Skip it...
+</code></pre>
+</li>
+<li>
+<p>no label on the item:</p>
+
+<pre><code>Cannot synchronize the item - missing mandatory label. Skip it...
+</code></pre>
+</li>
+<li>
+<p>syncing the checklist without syncing the card first:</p>
+
+<pre><code>Cannot synchronize the checklist - the card must synchronized first. Skip it...
+</code></pre>
+</li>
+<li>
+<p>syncing the item without syncing the checklist first:</p>
+
+<pre><code>Cannot synchronize the item - the checklist must be synchronized first. Skip it...
+</code></pre>
+</li>
+</ul><h1>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>org-trello is free software under GPL v3. See COPYING file for details.</p>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
