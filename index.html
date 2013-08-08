@@ -29,11 +29,10 @@
     <div class="container">
       <section id="main_content">
         <h1>
-<a name="org-trello" class="anchor" href="#org-trello"><span class="octicon octicon-link"></span></a>org-trello</h1>
+<a name="org-trello-" class="anchor" href="#org-trello-"><span class="octicon octicon-link"></span></a>org-trello <a href="https://travis-ci.org/ardumont/org-trello"><img src="https://travis-ci.org/ardumont/org-trello.png?branch=master" alt="Build Status"></a>
+</h1>
 
-<p><a href="https://travis-ci.org/ardumont/org-trello"><img src="https://travis-ci.org/ardumont/org-trello.png?branch=master" alt="Build Status"></a></p>
-
-<p>Minor emacs mode for org-mode - 2-way synchronization between org-mode file and trello board</p>
+<p>Minor emacs mode for org-mode - 2-way synchronization between org and trello board</p>
 
 <p><strong>Table of Contents</strong>  <em>generated with <a href="http://doctoc.herokuapp.com/">DocToc</a></em></p>
 
@@ -46,13 +45,31 @@
 
 <ul>
 <li><a href="#fast-help">Fast help</a></li>
-<li><a href="#demo">Demo</a></li>
+<li>
+<a href="#demo">Demo</a>
+
+<ul>
+<li><a href="#synchronize-one-entity">Synchronize one entity</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#setup-key-and-token">Setup key and token</a></li>
+<li><a href="#attach-org-file-to-trello-board">Attach org file to trello board</a></li>
+<li><a href="#synchronize-one-complete-entity">Synchronize one complete entity</a></li>
+<li><a href="#synchronize-from-org-to-trello">Synchronize from org to trello</a></li>
+<li><a href="#synchronize-from-trello-to-org">Synchronize from trello to org</a></li>
+<li><a href="#create-board-and-sync">Create board and sync</a></li>
+<li><a href="#create-board-with-your-keywords">Create board with your keywords</a></li>
+<li><a href="#use-the-checklist-luke!">Use the checklist Luke!</a></li>
+<li><a href="#kill-entities">Kill entities</a></li>
+<li><a href="#simple-help-routine">Simple help routine</a></li>
+<li><a href="#check-your-setup">Check your Setup</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#contributions">Contributions</a></li>
 <li><a href="#release-notes">Release notes</a></li>
 <li>
-<a href="#install">Install</a>
+<a href="#install-1">Install</a>
 
 <ul>
 <li><a href="#marmalade---stable-version">marmalade - Stable version</a></li>
@@ -115,9 +132,12 @@
 </ul><h1>
 <a name="emacs-version" class="anchor" href="#emacs-version"><span class="octicon octicon-link"></span></a>Emacs version</h1>
 
-<p>Tested on GNU Emacs 24.1.1 (x86_64-pc-linux-gnu, X toolkit, Xaw3d scroll bars) of 2012-09-22 on batsu, modified by Debian</p>
+<p>Tested on:</p>
 
-<h1>
+<ul>
+<li>GNU Emacs 24.1.1 (x86_64-pc-linux-gnu, X toolkit, Xaw3d scroll bars) of 2012-09-22 on batsu, modified by Debian (&lt;= 0.0.9)</li>
+<li>GNU Emacs 24.3.1 (x86_64-pc-linux-gnu, X toolkit, Xaw3d scroll bars) of 2013-04-14 on marid, modified by Debian (from 0.1.0)</li>
+</ul><h1>
 <a name="tldr" class="anchor" href="#tldr"><span class="octicon octicon-link"></span></a>TL;DR</h1>
 
 <h2>
@@ -140,21 +160,72 @@
 <h2>
 <a name="demo" class="anchor" href="#demo"><span class="octicon octicon-link"></span></a>Demo</h2>
 
-<ul>
-<li><a href="http://youtu.be/e3NzllAHbHY">Install</a></li>
-<li><a href="http://youtu.be/ReUp1Wn5scc">Setup key and token</a></li>
-<li><a href="http://youtu.be/2PT8K1HG-eY">Attach org-mode file to one trello board</a></li>
-<li><a href="http://youtu.be/ILPs74L5LFU">Synchronize one entity</a></li>
-<li><a href="http://youtu.be/H8DXm5BLaD0">Synchronize one complete entity and move entity according to status</a></li>
-<li><a href="http://youtu.be/d6SATWzhQhs">Synchronize from org-mode file to trello</a></li>
-<li><a href="http://youtu.be/-ldo8gvhaTY">Synchronize from trello to org-mode files</a></li>
-<li><a href="http://youtu.be/6k4zRm6t8ZY">Create board and sync</a></li>
-<li><a href="http://youtu.be/1UYYXjCwshs">Create board with your own keywords</a></li>
-<li><a href="http://youtu.be/M9xAvO3m_mU">Use the checklist Luke!</a></li>
-<li><a href="http://youtu.be/C1c_m9LHyC0">Kill entities</a></li>
-<li><a href="http://youtu.be/g-lW0lDFU5Y">Simple help routine</a></li>
-<li><a href="http://youtu.be/2OlmPMwtCAs">Check your Setup</a></li>
-</ul><h1>
+<h3>
+<a name="synchronize-one-entity" class="anchor" href="#synchronize-one-entity"><span class="octicon octicon-link"></span></a>Synchronize one entity</h3>
+
+<p><a href="http://youtu.be/ILPs74L5LFU"><img src="https://i1.ytimg.com/vi/ILPs74L5LFU/0.jpg"></a></p>
+
+<h3>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h3>
+
+<p><a href="http://youtu.be/e3NzllAHbHY"><img src="https://i1.ytimg.com/vi/e3NzllAHbHY/0.jpg"></a></p>
+
+<h3>
+<a name="setup-key-and-token" class="anchor" href="#setup-key-and-token"><span class="octicon octicon-link"></span></a>Setup key and token</h3>
+
+<p><a href="http://youtu.be/ReUp1Wn5scc"><img src="https://i1.ytimg.com/vi/ReUp1Wn5scc/0.jpg"></a></p>
+
+<h3>
+<a name="attach-org-file-to-trello-board" class="anchor" href="#attach-org-file-to-trello-board"><span class="octicon octicon-link"></span></a>Attach org file to trello board</h3>
+
+<p><a href="http://youtu.be/2PT8K1HG-eY"><img src="https://i1.ytimg.com/vi/2PT8K1HG-eY/0.jpg"></a></p>
+
+<h3>
+<a name="synchronize-one-complete-entity" class="anchor" href="#synchronize-one-complete-entity"><span class="octicon octicon-link"></span></a>Synchronize one complete entity</h3>
+
+<p><a href="http://youtu.be/H8DXm5BLaD0"><img src="https://i1.ytimg.com/vi/H8DXm5BLaD0/0.jpg"></a></p>
+
+<h3>
+<a name="synchronize-from-org-to-trello" class="anchor" href="#synchronize-from-org-to-trello"><span class="octicon octicon-link"></span></a>Synchronize from org to trello</h3>
+
+<p><a href="http://youtu.be/d6SATWzhQhs"><img src="https://i1.ytimg.com/vi/d6SATWzhQhs/0.jpg"></a></p>
+
+<h3>
+<a name="synchronize-from-trello-to-org" class="anchor" href="#synchronize-from-trello-to-org"><span class="octicon octicon-link"></span></a>Synchronize from trello to org</h3>
+
+<p><a href="http://youtu.be/-ldo8gvhaTY"><img src="https://i1.ytimg.com/vi/-ldo8gvhaTY/0.jpg"></a></p>
+
+<h3>
+<a name="create-board-and-sync" class="anchor" href="#create-board-and-sync"><span class="octicon octicon-link"></span></a>Create board and sync</h3>
+
+<p><a href="http://youtu.be/6k4zRm6t8ZY"><img src="https://i1.ytimg.com/vi/6k4zRm6t8ZY/0.jpg"></a></p>
+
+<h3>
+<a name="create-board-with-your-keywords" class="anchor" href="#create-board-with-your-keywords"><span class="octicon octicon-link"></span></a>Create board with your keywords</h3>
+
+<p><a href="http://youtu.be/1UYYXjCwshs"><img src="https://i1.ytimg.com/vi/1UYYXjCwshs/0.jpg"></a></p>
+
+<h3>
+<a name="use-the-checklist-luke" class="anchor" href="#use-the-checklist-luke"><span class="octicon octicon-link"></span></a>Use the checklist Luke!</h3>
+
+<p><a href="http://youtu.be/M9xAvO3m_mU"><img src="https://i1.ytimg.com/vi/M9xAvO3m_mU/0.jpg"></a></p>
+
+<h3>
+<a name="kill-entities" class="anchor" href="#kill-entities"><span class="octicon octicon-link"></span></a>Kill entities</h3>
+
+<p><a href="http://youtu.be/C1c_m9LHyC0"><img src="https://i1.ytimg.com/vi/C1c_m9LHyC0/0.jpg"></a></p>
+
+<h3>
+<a name="simple-help-routine" class="anchor" href="#simple-help-routine"><span class="octicon octicon-link"></span></a>Simple help routine</h3>
+
+<p><a href="http://youtu.be/g-lW0lDFU5Y"><img src="https://i1.ytimg.com/vi/g-lW0lDFU5Y/0.jpg"></a></p>
+
+<h3>
+<a name="check-your-setup" class="anchor" href="#check-your-setup"><span class="octicon octicon-link"></span></a>Check your Setup</h3>
+
+<p><a href="http://youtu.be/2OlmPMwtCAs"><img src="https://i1.ytimg.com/vi/1UYYXjCwshs/0.jpg"></a></p>
+
+<h1>
 <a name="contributions" class="anchor" href="#contributions"><span class="octicon octicon-link"></span></a>Contributions</h1>
 
 <ul>
@@ -169,7 +240,7 @@
 <p><a href="./release-notes.md">Release notes</a></p>
 
 <h1>
-<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h1>
+<a name="install-1" class="anchor" href="#install-1"><span class="octicon octicon-link"></span></a>Install</h1>
 
 <h2>
 <a name="marmalade---stable-version" class="anchor" href="#marmalade---stable-version"><span class="octicon octicon-link"></span></a>marmalade - Stable version</h2>
@@ -200,7 +271,7 @@
 <p>Then hit <code>M-x eval-buffer</code> to evaluate the buffer's contents.</p>
 
 <h2>
-<a name="org-trello-1" class="anchor" href="#org-trello-1"><span class="octicon octicon-link"></span></a>org-trello</h2>
+<a name="org-trello" class="anchor" href="#org-trello"><span class="octicon octicon-link"></span></a>org-trello</h2>
 
 <p>To install org-trello:</p>
 
