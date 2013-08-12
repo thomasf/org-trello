@@ -11,11 +11,12 @@
 
 (expectations
 ;;  (desc "testing orgtrello-hash/make-hash-org")
-  (expect "some title"  (gethash :title   (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date")))
-  (expect "IN PROGRESS" (gethash :keyword (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date")))
-  (expect 0             (gethash :level   (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date")))
-  (expect "some id"     (gethash :id      (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date")))
-  (expect "due-date"    (gethash :due     (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date"))))
+  (expect "some title"  (gethash :title    (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date" :point)))
+  (expect "IN PROGRESS" (gethash :keyword  (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date" :point)))
+  (expect 0             (gethash :level    (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date" :point)))
+  (expect "some id"     (gethash :id       (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date" :point)))
+  (expect "due-date"    (gethash :due      (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date" :point)))
+  (expect :point        (gethash :position (orgtrello-hash/make-hash-org 0 "IN PROGRESS" "some title" "some id" "due-date" :point))))
 
 (expectations
   (expect :some-method (gethash :method (orgtrello-hash/make-hash :some-method :some-uri)))
@@ -25,11 +26,12 @@
 ;; ########################## orgtrello-data
 
 (expectations
-  (expect "some title :orgtrello-id-identifier:" (gethash :title   (orgtrello-data/--get-metadata '(:id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
-  (expect "IN PROGRESS"                          (gethash :keyword (orgtrello-data/--get-metadata '(:id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
-  (expect 0                                      (gethash :level   (orgtrello-data/--get-metadata '(:id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
-  (expect :id                                    (gethash :id      (orgtrello-data/--get-metadata '(:id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
-  (expect :due                                   (gethash :due     (orgtrello-data/--get-metadata '(:id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil)))))
+  (expect "some title :orgtrello-id-identifier:" (gethash :title    (orgtrello-data/--get-metadata '(:point :id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
+  (expect "IN PROGRESS"                          (gethash :keyword  (orgtrello-data/--get-metadata '(:point :id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
+  (expect 0                                      (gethash :level    (orgtrello-data/--get-metadata '(:point :id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
+  (expect :id                                    (gethash :id       (orgtrello-data/--get-metadata '(:point :id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
+  (expect :due                                   (gethash :due      (orgtrello-data/--get-metadata '(:point :id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil))))
+  (expect :point                                 (gethash :position (orgtrello-data/--get-metadata '(:point :id :due 0 1 "IN PROGRESS" nil "some title :orgtrello-id-identifier:" nil)))))
 
 (expectations
   (expect "2013-07-18T02:00:00.000Z" (orgtrello-data/--convert-orgmode-date-to-trello-date "2013-07-18T02:00:00.000Z"))
@@ -230,9 +232,9 @@
   (expect "DELETE" (orgtrello-query/--compute-method :delete)))
 
 (expectations
-  (expect (format "%s%s" *TRELLO-URL* "/uri")            (orgtrello-query/--compute-url "/uri"))
-  (expect (format "%s%s" *TRELLO-URL* "/uri/other")      (orgtrello-query/--compute-url "/uri/other"))
-  (expect (format "%s%s" *TRELLO-URL* "/uri/some/other") (orgtrello-query/--compute-url "/uri/some/other")))
+  (expect (format "%s%s" *TRELLO-URL* "/uri")            (orgtrello-query/--compute-url *TRELLO-URL* "/uri"))
+  (expect (format "%s%s" *TRELLO-URL* "/uri/other")      (orgtrello-query/--compute-url *TRELLO-URL* "/uri/other"))
+  (expect (format "some-server/uri/some/other")          (orgtrello-query/--compute-url "some-server" "/uri/some/other")))
 
 (defvar org-trello-tests/--query-map (make-hash-table :test 'equal))
 (puthash :method :some-get org-trello-tests/--query-map)
@@ -244,7 +246,7 @@
   (expect :some-get (orgtrello-query/--method org-trello-tests/--query-map))
   (expect :some-uri (orgtrello-query/--uri org-trello-tests/--query-map))
   (expect :some-sync (orgtrello-query/--sync org-trello-tests/--query-map))
-  (expect :some-params (orgtrello-query/--params  org-trello-tests/--query-map)))
+  (expect :some-params (orgtrello-query/--params org-trello-tests/--query-map)))
 
 (expectations
   (expect :some-id (orgtrello-query/--id '((id . :some-id))))
@@ -285,12 +287,13 @@
 ;; ########################## orgtrello-tests
 
 (ert-deftest testing-orgtrello/--compute-data-from-entity-meta ()
-  (let* ((entry   (orgtrello-hash/make-hash-org :some-level :some-keyword :some-label :some-id :some-due)))
-    (should (equal (orgtrello/--id entry)      :some-id))
-    (should (equal (orgtrello/--label entry)   :some-label))
-    (should (equal (orgtrello/--keyword entry) :some-keyword))
-    (should (equal (orgtrello/--level entry)   :some-level))
-    (should (equal (orgtrello/--due entry)     :some-due))))
+  (let* ((entry   (orgtrello-hash/make-hash-org :some-level :some-keyword :some-label :some-id :some-due :some-point)))
+    (should (equal (orgtrello/--id entry)       :some-id))
+    (should (equal (orgtrello/--label entry)    :some-label))
+    (should (equal (orgtrello/--keyword entry)  :some-keyword))
+    (should (equal (orgtrello/--level entry)    :some-level))
+    (should (equal (orgtrello/--due entry)      :some-due))
+    (should (equal (orgtrello/--position entry) :some-point))))
 
 (ert-deftest testing-orgtrello/--id-name ()
   (let* ((entities [((id . "id")

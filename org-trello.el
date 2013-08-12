@@ -5,7 +5,7 @@
 ;; Author: Antoine R. Dumont <eniotna.t AT gmail.com>
 ;; Maintainer: Antoine R. Dumont <eniotna.t AT gmail.com>
 ;; Version: 0.1.1
-;; Package-Requires: ((org "8.0.7") (dash "1.5.0") (request "0.2.0") (cl-lib "0.3.0") (json "1.2"))
+;; Package-Requires: ((org "8.0.7") (dash "1.5.0") (request "0.2.0") (cl-lib "0.3.0") (json "1.2") (elnode "0.9.9.7.6"))
 ;; Keywords: org-mode trello sync org-trello
 ;; URL: https://github.com/ardumont/org-trello
 
@@ -55,6 +55,7 @@
 (require 'request)
 (eval-when-compile (require 'cl-lib))
 (require 'parse-time)
+(require 'elnode)
 
 
 
@@ -66,18 +67,24 @@
   (require 'org-trello)
   (setq *ORGTRELLO-CHECKLIST-UPDATE-ITEMS* nil)")
 
+(defvar *consumer-key*     nil "Id representing the user")
+(defvar *access-token*     nil "Read/write Access token to use trello in the user's name ")
+(defvar *ORGTRELLO-MARKER* nil "Marker used for syncing the data in trello")
+(defvar *ORGTRELLO-MARKER-PREFIX* "orgtrello-marker" "Prefix for the org-trello Marker used for syncing the data in trello.")
+
 
 
 ;; #################### orgtrello-hash
 
-(defun orgtrello-hash/make-hash-org (level keyword title id due)
+(defun orgtrello-hash/make-hash-org (level keyword title id due position)
   "Utility function to ease the creation of the orgtrello-metadata"
   (let ((h (make-hash-table :test 'equal)))
-    (puthash :level   level   h)
-    (puthash :keyword keyword h)
-    (puthash :title   title   h)
-    (puthash :id      id      h)
-    (puthash :due     due     h)
+    (puthash :position position h)
+    (puthash :level    level    h)
+    (puthash :keyword  keyword  h)
+    (puthash :title    title    h)
+    (puthash :id       id       h)
+    (puthash :due      due      h)
     h))
 
 (defun orgtrello-hash/make-hash (method uri &optional params)
@@ -112,12 +119,14 @@
 
 (defun orgtrello-data/metadata ()
   "Compute the metadata from the org-heading-components entry, add the identifier and extract the metadata needed."
-  (let* ((orgtrello-data/metadata--id       (org-entry-get (point) *ORGTRELLO-ID*))
-         (orgtrello-data/metadata--due      (orgtrello-data/--convert-orgmode-date-to-trello-date (org-entry-get (point) "DEADLINE")))
+  (let* ((orgtrello-data/metadata--point    (point))
+         (orgtrello-data/metadata--id       (org-entry-get orgtrello-data/metadata--point *ORGTRELLO-ID*))
+         (orgtrello-data/metadata--due      (orgtrello-data/--convert-orgmode-date-to-trello-date (org-entry-get orgtrello-data/metadata--point "DEADLINE")))
          (orgtrello-data/metadata--metadata (org-heading-components)))
     (->> orgtrello-data/metadata--metadata
          (cons orgtrello-data/metadata--due)
          (cons orgtrello-data/metadata--id)
+         (cons orgtrello-data/metadata--point)
          orgtrello-data/--get-metadata)))
 
 (defun orgtrello-data/--parent-metadata ()
@@ -150,8 +159,8 @@
 
 (defun orgtrello-data/--get-metadata (heading-metadata)
   "Given the heading-metadata returned by the function 'org-heading-components, make it a hashmap with key :level, :keyword, :title. and their respective value"
-  (cl-destructuring-bind (id due level _ keyword _ title &rest) heading-metadata
-                         (orgtrello-hash/make-hash-org level keyword title id due)))
+  (cl-destructuring-bind (point id due level _ keyword _ title &rest) heading-metadata
+                         (orgtrello-hash/make-hash-org level keyword title id due point)))
 
 (message "org-trello - orgtrello-data loaded!")
 
@@ -273,66 +282,9 @@
 
 
 
-;; #################### orgtrello-query/
+;; #################### orgtrello-query
 
 (defvar *TRELLO-URL* "https://api.trello.com/1" "The needed prefix url for trello")
-
-(defun orgtrello-query/--make-dispatch-http-query ()
-  "Make a map that will dispatch the function to call depending on the http verb :get, :put, :post, etc..."
-  (let* ((map-dispatch (make-hash-table :test 'equal)))
-    (puthash :get    'orgtrello-query/--get         map-dispatch)
-    (puthash :put    'orgtrello-query/--post-or-put map-dispatch)
-    (puthash :post   'orgtrello-query/--post-or-put map-dispatch)
-    (puthash :delete 'orgtrello-query/--delete      map-dispatch)
-    map-dispatch))
-
-(defvar *MAP-DISPATCH-HTTP-QUERY* (orgtrello-query/--make-dispatch-http-query))
-
-(defun orgtrello-query/http (query-map &optional sync success-callback error-callback)
-  "Query the trello api asynchronously."
-  (let* ((method      (gethash :method query-map))
-         (fn-dispatch (gethash method *MAP-DISPATCH-HTTP-QUERY*)))
-    (if sync
-        (progn ;; synchronous request
-          (puthash :sync t query-map)
-          (let ((request-response (funcall fn-dispatch query-map success-callback error-callback)))
-            (request-response-data request-response)))
-      (funcall fn-dispatch query-map success-callback error-callback))))
-
-(defun orgtrello-query/--map-dispatch-http-verb ()
-  (let* ((map-dispatch (make-hash-table :test 'equal)))
-    (puthash :get    "GET"    map-dispatch)
-    (puthash :put    "PUT"    map-dispatch)
-    (puthash :post   "POST"   map-dispatch)
-    (puthash :delete "DELETE" map-dispatch)
-    map-dispatch))
-
-(defvar *MAP-DISPATCH-HTTP-VERB* (orgtrello-query/--map-dispatch-http-verb))
-
-(defun orgtrello-query/--compute-method (method)
-  "Given the keywords :get, :post, :put, :delete, map them into standard uppercase string."
-  (gethash method *MAP-DISPATCH-HTTP-VERB*))
-
-(defun orgtrello-query/--compute-url (uri)
-  "Compute the trello url from the given uri."
-  (format "%s%s" *TRELLO-URL* uri))
-
-(cl-defun standard-error-callback (&key error-thrown &allow-other-keys)
-  "Standard error callback"
-  (save-excursion
-      ;; find the current entry through the pointer
-      (org-goto-local-search-headings *ORGTRELLO-MARKER* nil t)
-      ;; remove the marker now that we're done
-      (org-delete-property *ORGTRELLO-MARKER*))
-  (message "There was some problem during the request to trello: %s" error-thrown))
-
-(cl-defun standard-success-callback ()
-  "Standard success callback"
-  (message "Success."))
-
-(cl-defun simple-error-callback (&key error-thrown &allow-other-keys)
-  "Standard error callback"
-  (message "There was some problem during the request to trello: %s" error-thrown))
 
 (defun orgtrello-query/--method (query-map)
   "Retrieve the http method"
@@ -349,20 +301,6 @@
 (defun orgtrello-query/--params (query-map)
   "Retrieve the http params"
   (gethash :params query-map))
-
-(defun orgtrello-query/--get (query-map &optional success-callback error-callback)
-  "GET"
-  (let* ((method (orgtrello-query/--method query-map))
-         (uri    (orgtrello-query/--uri    query-map))
-         (sync   (orgtrello-query/--sync   query-map)))
-    (request (orgtrello-query/--compute-url uri)
-             :sync    sync
-             :type    (orgtrello-query/--compute-method method)
-             :params  `((key . ,*consumer-key*)
-                        (token . ,*access-token*))
-             :parser  'json-read
-             :success (if success-callback success-callback 'standard-success-callback)
-             :error   (if error-callback error-callback 'standard-error-callback))))
 
 (defun orgtrello-query/--id (entity-data)
   "Extract the id of the entity from the entity"
@@ -400,44 +338,24 @@
   "Extract the closed property of the entity"
   (assoc-default 'closed entity-data))
 
-(cl-defun orgtrello-query/--post-put-success-callback-update-id (&key data &allow-other-keys)
-  "Called back function at the end of the post/put request to update the trello id in the org-mode file."
-  (let* ((orgtrello-query/--entry-new-id (orgtrello-query/--id data))
-         (orgtrello-query/--entry-name   (orgtrello-query/--name data)))
-    ;; will update via tag the trello id of the new persisted data (if needed)
-    (save-excursion
-      ;;(while (org-up-heading-safe))
-      ;; find the current entry through the pointer
-      (org-goto-local-search-headings *ORGTRELLO-MARKER* nil t)
-      ;; remove the marker now that we're done
-      (org-delete-property *ORGTRELLO-MARKER*)
-      ;; now we extract the data
-      (let* ((orgtrello-query/--entry-metadata (orgtrello-data/metadata))
-             (orgtrello-query/--entry-id       (orgtrello/--id orgtrello-query/--entry-metadata)))
-        (if orgtrello-query/--entry-id ;; id already present in the org-mode file
-            ;; no need to add another
-            (message "Entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-id)
-          (progn
-            ;; not present, this was just created, we add a simple property
-            (org-set-property *ORGTRELLO-ID* orgtrello-query/--entry-new-id)
-            (message "Newly entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-new-id)))))))
+(defun orgtrello-query/--compute-method (method)
+  "Given the keywords :get, :post, :put, :delete, map them into standard uppercase string."
+  (cond ((eq :get method)    "GET")
+        ((eq :put method)    "PUT")
+        ((eq :post method)   "POST")
+        ((eq :delete method) "DELETE")))
 
-(defun orgtrello-query/--post-or-put (query-map &optional success-callback error-callback)
-  "POST or PUT"
-  (let* ((method  (orgtrello-query/--method query-map))
-         (uri     (orgtrello-query/--uri    query-map))
-         (payload (orgtrello-query/--params query-map))
-         (sync    (orgtrello-query/--sync   query-map)))
-    (request (orgtrello-query/--compute-url uri)
-             :sync    sync
-             :type    (orgtrello-query/--compute-method method)
-             :params  `((key . ,*consumer-key*)
-                        (token . ,*access-token*))
-             :headers '(("Content-type" . "application/json"))
-             :data    (json-encode payload)
-             :parser  'json-read
-             :success (if success-callback success-callback 'standard-success-callback)
-             :error   (if error-callback error-callback 'standard-error-callback))))
+(defun orgtrello-query/--compute-url (server uri)
+  "Compute the trello url from the given uri."
+  (format "%s%s" server uri))
+
+(cl-defun standard-error-callback (&key error-thrown &allow-other-keys)
+  "Standard error callback"
+  (message "There was some problem during the request to trello: %s" error-thrown))
+
+(cl-defun standard-success-callback ()
+  "Standard success callback"
+  (message "Success."))
 
 (cl-defun orgtrello-query/--delete-success-callback (&key data response &allow-other-keys)
   "Callback function called at the end of a successful delete request."
@@ -450,20 +368,143 @@
     (kill-line)
     (message "Entity deleted!")))
 
-(defun orgtrello-query/--delete (query-map &optional success-callback error-callback)
+(defun orgtrello-query/--authentication-params ()
+  "Generates the list of http authentication parameters"
+  `((key . ,*consumer-key*) (token . ,*access-token*)))
+
+(defun orgtrello-query/--get (server query-map &optional success-callback error-callback)
+  "GET"
+  (let* ((method (orgtrello-query/--method query-map))
+         (uri    (orgtrello-query/--uri    query-map))
+         (sync   (orgtrello-query/--sync   query-map)))
+    (request (orgtrello-query/--compute-url server uri)
+             :sync    sync
+             :type    (orgtrello-query/--compute-method method)
+             :params  (orgtrello-query/--authentication-params)
+             :parser  'json-read
+             :success (if success-callback success-callback 'standard-success-callback)
+             :error   (if error-callback error-callback 'standard-error-callback))))
+
+(defun orgtrello-query/--post-or-put (server query-map &optional success-callback error-callback)
+  "POST or PUT"
+  (let* ((method  (orgtrello-query/--method query-map))
+         (uri     (orgtrello-query/--uri    query-map))
+         (payload (orgtrello-query/--params query-map))
+         (sync    (orgtrello-query/--sync   query-map)))
+    (request (orgtrello-query/--compute-url server uri)
+             :sync    sync
+             :type    (orgtrello-query/--compute-method method)
+             :params  (orgtrello-query/--authentication-params)
+             :headers '(("Content-type" . "application/json"))
+             :data    (json-encode payload)
+             :parser  'json-read
+             :success (if success-callback success-callback 'standard-success-callback)
+             :error   (if error-callback error-callback 'standard-error-callback))))
+
+(defun orgtrello-query/--delete (server query-map &optional success-callback error-callback)
   "DELETE"
   (let* ((method (orgtrello-query/--method query-map))
          (uri    (orgtrello-query/--uri    query-map))
          (sync   (orgtrello-query/--sync   query-map)))
-    (request (orgtrello-query/--compute-url uri)
+    (request (orgtrello-query/--compute-url server uri)
              :sync    sync
              :type    (orgtrello-query/--compute-method method)
-             :params  `((key . ,*consumer-key*)
-                        (token . ,*access-token*))
+             :params  (orgtrello-query/--authentication-params)
              :success (if success-callback success-callback 'standard-success-callback)
              :error   (if error-callback error-callback 'standard-error-callback))))
 
-(message "org-trello - orgtrello-query/ loaded!")
+(defun orgtrello-query/--dispatch-http-query (method)
+  (cond ((eq :get method)                        'orgtrello-query/--get)
+        ((or (eq :post method) (eq :put method)) 'orgtrello-query/--post-or-put)
+        ((eq :delete method)                     'orgtrello-query/--delete)))
+
+(defun orgtrello-query/--http (server query-map &optional sync success-callback error-callback)
+  "HTTP query the server with the query-map."
+  (let* ((method      (orgtrello-query/--method query-map))
+         (fn-dispatch (orgtrello-query/--dispatch-http-query method)))
+    (if sync
+        (progn ;; synchronous request
+          (puthash :sync t query-map)
+          (let ((request-response (funcall fn-dispatch server query-map success-callback error-callback)))
+            (request-response-data request-response)))
+      (funcall fn-dispatch server query-map success-callback error-callback))))
+
+(defun orgtrello-query/http-trello (query-map &optional sync success-callback error-callback)
+  "Query the trello api."
+  (orgtrello-query/--http *TRELLO-URL* query-map sync success-callback error-callback))
+
+(message "org-trello - orgtrello-query loaded!")
+
+
+
+;; #################### orgtrello-proxy
+
+(defvar *ORGTRELLO-PROXY-PORT* "8009")
+(defvar *ORGTRELLO-PROXY-URI* "/proxy")
+(defvar *ORGTRELLO-PROXY-URL* (format "http://localhost:%s%s" *ORGTRELLO-PROXY-PORT* *ORGTRELLO-PROXY-URI*))
+
+(defun orgtrello-proxy/--standard-success-callback (metadata)
+  "Return a callback able to update the org file."
+  (let ((position (assoc-default 'position metadata)))
+    (cl-defun orgtrello-query/--post-put-success-callback-update-id (&key data &allow-other-keys)
+      "Called back function at the end of the post/put request to update the trello id in the org-mode file."
+      (let* ((orgtrello-query/--entry-new-id (orgtrello-query/--id data))
+             (orgtrello-query/--entry-name   (orgtrello-query/--name data)))
+        ;; will update via tag the trello id of the new persisted data (if needed)
+        (save-excursion
+          ;; Get back to the buffer
+          (goto-char position)
+          ;; now we extract the data
+          (let* ((orgtrello-query/--entry-metadata (orgtrello-data/metadata))
+                 (orgtrello-query/--entry-id       (orgtrello/--id orgtrello-query/--entry-metadata)))
+            (if orgtrello-query/--entry-id ;; id already present in the org-mode file
+                ;; no need to add another
+                (message "Entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-id)
+              (progn
+                ;; not present, this was just created, we add a simple property
+                (org-set-property *ORGTRELLO-ID* orgtrello-query/--entry-new-id)
+                (message "Newly entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-new-id)))))))))
+
+(defun orgtrello-proxy/http (query-map &optional sync success-callback error-callback)
+  "Query the trello api asynchronously."
+  (orgtrello-query/--http *ORGTRELLO-PROXY-URL* query-map sync success-callback error-callback))
+
+(defvar orgtrello-query/--app-routes '( ;; fool around to understand how routing works
+                                       ("^localhost//test/" . orgtrello-proxy/--elnode-testing)
+                                       ;; proxy routine
+                                       ((format "^localhost/%s/" *ORGTRELLO-PROXY-URI*) . orgtrello-proxy/--elnode-proxy)
+                                       ;; whatever...
+                                       ("^.*//\\(.*\\)" . elnode-webserver)))
+
+(defun orgtrello-proxy/--elnode-testing (httpcon)
+  "Utility - Describe the information about the http connection."
+  (mapc
+   (lambda
+     (fn) (print (format "%s - %s\n" (car fn) (funcall (cadr fn) httpcon))))
+   '(("elnode-http-host" elnode-http-host)
+     ("elnode-http-method" elnode-http-method)
+     ("elnode-http-pathinfo" elnode-http-pathinfo)
+     ("elnode-http-query" elnode-http-query)
+     ("elnode-http-params" elnode-http-params))))
+
+(defun orgtrello-proxy/--elnode-proxy (httpcon)
+  "A simple handler to extract the params information and make the request to trello."
+  (let* ((params     (elnode-http-params httpcon))
+         (method     (upcase (assoc-default 'method params)))
+         (uri        (assoc-default 'uri params))
+         (payload    (assoc-default 'params params))
+         (query-map  (orgtrello-hash/make-hash method uri payload))
+         (position   (assoc-default 'position params)))
+    (message "Request to trello - %s %s %S\n%S" method uri payload query-map)
+    (orgtrello-proxy/http query-map t (orgtrello-proxy/--standard-success-callback position))))
+
+(defun orgtrello-proxy/--proxy-handler (httpcon)
+  "Launch function to start the proxy"
+  (elnode-hostpath-dispatcher httpcon orgtrello-query/--app-routes))
+
+;; (elnode-start 'orgtrello-proxy/--proxy-handler :port 8009)
+
+(message "org-trello - orgtrello-proxy loaded!")
 
 
 
@@ -474,7 +515,7 @@
 (defvar *DONE* "DONE" "org-mode done state")
 
 ;; Properties key for the orgtrello headers #+PROPERTY board-id, etc...
-(defvar *BOARD-ID* "board-id" "orgtrello property board-id entry")
+(defvar *BOARD-ID*   "board-id" "orgtrello property board-id entry")
 (defvar *BOARD-NAME* "board-name" "orgtrello property board-name entry")
 
 (defvar *LIST-NAMES*   nil "orgtrello property names of the different lists. This use the standard 'org-todo-keywords property from org-mode.")
@@ -482,11 +523,6 @@
 
 (defvar *CONFIG-DIR*  (concat (getenv "HOME") "/" ".trello"))
 (defvar *CONFIG-FILE* (concat *CONFIG-DIR* "/config.el"))
-
-(defvar *consumer-key*     nil "Id representing the user")
-(defvar *access-token*     nil "Read/write Access token to use trello in the user's name ")
-(defvar *ORGTRELLO-MARKER* nil "Marker used for syncing the data in trello")
-(defvar *ORGTRELLO-MARKER-PREFIX* "orgtrello-marker" "Prefix for the org-trello Marker used for syncing the data in trello.")
 
 (defun orgtrello/filtered-kwds ()
   "org keywords used (based on org-todo-keywords-1)."
@@ -551,6 +587,10 @@
 (defun orgtrello/--due (entity-meta)
   "Retrieve the due date from the entity."
   (gethash :due entity-meta))
+
+(defun orgtrello/--position (entity-meta)
+  "Retrieve the point from the entity."
+  (gethash :position entity-meta))
 
 (defun orgtrello/--retrieve-state-of-card (card-meta)
   "Given a card, retrieve its state depending on its :keyword metadata. If empty or no keyword then, its equivalence is *TODO*, otherwise, return its current state."
@@ -708,7 +748,7 @@
                 ;; set the consumer-key to make a pointer to get back to when the request is finished
                 (orgtrello/--set-marker)
                 ;; request
-                (orgtrello-query/http query-http-or-error-msg sync 'orgtrello-query/--post-put-success-callback-update-id)
+                (orgtrello-proxy/http query-http-or-error-msg sync 'orgtrello-query/--post-put-success-callback-update-id)
                 "Synchronizing simple entity done!")
             ;; else it's a string to display
             query-http-or-error-msg)))))
@@ -776,7 +816,7 @@
   "Given a card, return the list containing the card, the checklists from this card, and the items from the checklists. The order is guaranted."
   (cl-reduce
    (lambda (acc-list checklist-id)
-     (let ((orgtrello/--checklist (orgtrello-query/http (orgtrello-api/get-checklist checklist-id) t)))
+     (let ((orgtrello/--checklist (orgtrello-proxy/http (orgtrello-api/get-checklist checklist-id) t)))
        (append (cons orgtrello/--checklist (orgtrello/--do-retrieve-checklists-and-items orgtrello/--checklist)) acc-list)))
    (orgtrello-query/--checklist-ids card)
    :initial-value nil))
@@ -853,7 +893,7 @@
   (let ((orgtrello/--board-name-to-sync (orgtrello/--board-name)))
     (message "Synchronizing the trello board '%s' to the org-mode file. This may take a moment, some coffee may be a good idea..." orgtrello/--board-name-to-sync)
     (let* ((orgtrello/--board-id           (assoc-default *BOARD-ID* org-file-properties))
-           (orgtrello/--cards              (orgtrello-query/http (orgtrello-api/get-cards orgtrello/--board-id) t))
+           (orgtrello/--cards              (orgtrello-proxy/http (orgtrello-api/get-cards orgtrello/--board-id) t))
            (orgtrello/--entities-hash-map  (orgtrello/--compute-full-entities-from-trello orgtrello/--cards))
            (orgtrello/--remaining-entities (orgtrello/--sync-buffer-with-trello-data orgtrello/--entities-hash-map)))
       (orgtrello/--update-buffer-with-remaining-trello-data orgtrello/--remaining-entities))
@@ -899,7 +939,7 @@
         (let ((query-http-or-error-msg (orgtrello/--dispatch-delete (gethash :current entry-metadata) (gethash :parent entry-metadata))))
           (if (hash-table-p query-http-or-error-msg)
               (progn
-                (orgtrello-query/http query-http-or-error-msg sync 'orgtrello-query/--delete-success-callback)
+                (orgtrello-proxy/http query-http-or-error-msg sync 'orgtrello-query/--delete-success-callback)
                 "Delete entity done!")
             query-http-or-error-msg))
       "Entity not synchronized on trello yet!")))
@@ -941,11 +981,11 @@
   "Return the map of the existing boards associated to the current account. (Synchronous request)"
   (cl-remove-if-not
    (lambda (board) (equal :json-false (orgtrello-query/--close-property board)))
-   (orgtrello-query/http (orgtrello-api/get-boards) t)))
+   (orgtrello-proxy/http (orgtrello-api/get-boards) t)))
 
 (defun orgtrello/--list-board-lists (board-id)
   "Return the map of the existing list of the board with id board-id. (Synchronous request)"
-  (orgtrello-query/http (orgtrello-api/get-lists board-id) t))
+  (orgtrello-proxy/http (orgtrello-api/get-lists board-id) t))
 
 (defun orgtrello/--choose-board (boards)
   "Given a map of boards, display the possible boards for the user to choose which one he wants to work with."
@@ -1043,7 +1083,7 @@
   "Create a board with name and eventually a description."
   (progn
     (message "Creating board '%s'" board-name)
-    (let* ((board-data (orgtrello-query/http (orgtrello-api/add-board board-name board-description) t)))
+    (let* ((board-data (orgtrello-proxy/http (orgtrello-api/add-board board-name board-description) t)))
       (list (orgtrello-query/--id board-data) (orgtrello-query/--name board-data)))))
 
 (defun orgtrello/--close-lists (list-ids)
@@ -1051,7 +1091,7 @@
   (mapc (lambda (list-id)
           (progn
             (message "Closing default list with id %s" list-id)
-            (orgtrello-query/http (orgtrello-api/close-list list-id) nil nil 'simple-error-callback)))
+            (orgtrello-proxy/http (orgtrello-api/close-list list-id))))
         list-ids))
 
 (defun orgtrello/--create-lists-according-to-keywords (board-id list-keywords)
@@ -1060,7 +1100,7 @@
    (lambda (acc-hash-name-id list-name)
      (progn
        (message "Board id %s - Creating list '%s'" board-id list-name)
-       (puthash list-name (orgtrello-query/--id (orgtrello-query/http (orgtrello-api/add-list list-name board-id) t)) acc-hash-name-id)
+       (puthash list-name (orgtrello-query/--id (orgtrello-proxy/http (orgtrello-api/add-list list-name board-id) t)) acc-hash-name-id)
        acc-hash-name-id))
    list-keywords
    :initial-value (make-hash-table :test 'equal)))
