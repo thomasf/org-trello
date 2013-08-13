@@ -172,91 +172,91 @@
                       `(("name" . ,name)
                         ("desc" . ,description))
                     `(("name" . ,name)))))
-    (orgtrello-hash/make-hash :post "/boards" payload)))
+    (orgtrello-hash/make-hash "POST" "/boards" payload)))
 
 (defun orgtrello-api/get-boards ()
   "Retrieve the boards of the current user."
-  (orgtrello-hash/make-hash :get "/members/me/boards"))
+  (orgtrello-hash/make-hash "GET" "/members/me/boards"))
 
 (defun orgtrello-api/get-board (id)
   "Retrieve the boards of the current user."
-  (orgtrello-hash/make-hash :get (format "/boards/%s" id)))
+  (orgtrello-hash/make-hash "GET" (format "/boards/%s" id)))
 
 (defun orgtrello-api/get-cards (board-id)
   "cards of a board"
-  (orgtrello-hash/make-hash :get (format "/boards/%s/cards" board-id)))
+  (orgtrello-hash/make-hash "GET" (format "/boards/%s/cards" board-id)))
 
 (defun orgtrello-api/get-card (card-id)
   "Detail of a card with id card-id."
-  (orgtrello-hash/make-hash :get (format "/cards/%s" card-id)))
+  (orgtrello-hash/make-hash "GET" (format "/cards/%s" card-id)))
 
 (defun orgtrello-api/delete-card (card-id)
   "Delete a card with id card-id."
-  (orgtrello-hash/make-hash :delete (format "/cards/%s" card-id)))
+  (orgtrello-hash/make-hash "DELETE" (format "/cards/%s" card-id)))
 
 (defun orgtrello-api/get-lists (board-id)
   "Display the lists of the board"
-  (orgtrello-hash/make-hash :get (format "/boards/%s/lists" board-id)))
+  (orgtrello-hash/make-hash "GET" (format "/boards/%s/lists" board-id)))
 
 (defun orgtrello-api/close-list (list-id)
   "'Close' the list with id list-id."
-  (orgtrello-hash/make-hash :put (format "/lists/%s/closed" list-id) '((value . t))))
+  (orgtrello-hash/make-hash "PUT" (format "/lists/%s/closed" list-id) '((value . t))))
 
 (defun orgtrello-api/get-list (list-id)
   "Get a list by id"
-  (orgtrello-hash/make-hash :get (format "/lists/%s" list-id)))
+  (orgtrello-hash/make-hash "GET" (format "/lists/%s" list-id)))
 
 (defun orgtrello-api/add-list (name idBoard)
   "Add a list - the name and the board id are mandatory (so i say!)."
-  (orgtrello-hash/make-hash :post "/lists/" `(("name" . ,name) ("idBoard" . ,idBoard))))
+  (orgtrello-hash/make-hash "POST" "/lists/" `(("name" . ,name) ("idBoard" . ,idBoard))))
 
 (defun orgtrello-api/add-card (name idList &optional due)
   "Add a card to a board"
   (let* ((orgtrello-api/add-card--default-params `(("name" . ,name) ("idList" . ,idList)))
          (orgtrello-api/add-card--params (if due (cons `("due" . ,due) orgtrello-api/add-card--default-params) orgtrello-api/add-card--default-params)))
-    (orgtrello-hash/make-hash :post "/cards/" orgtrello-api/add-card--params)))
+    (orgtrello-hash/make-hash "POST" "/cards/" orgtrello-api/add-card--params)))
 
 (defun orgtrello-api/get-cards-from-list (list-id)
   "List all the cards"
-  (orgtrello-hash/make-hash :get (format "/lists/%s/cards" list-id)))
+  (orgtrello-hash/make-hash "GET" (format "/lists/%s/cards" list-id)))
 
 (defun orgtrello-api/move-card (card-id idList &optional name due)
   "Move a card to another list"
   (let* ((orgtrello-api/move-card--default-params `(("idList" . ,idList)))
          (orgtrello-api/move-card--params-name (if name (cons `("name" . ,name) orgtrello-api/move-card--default-params) orgtrello-api/move-card--default-params))
          (orgtrello-api/move-card--params-due  (if due (cons `("due" . ,due) orgtrello-api/move-card--params-name) orgtrello-api/move-card--params-name)))
-    (orgtrello-hash/make-hash :put (format "/cards/%s" card-id) orgtrello-api/move-card--params-due)))
+    (orgtrello-hash/make-hash "PUT" (format "/cards/%s" card-id) orgtrello-api/move-card--params-due)))
 
 (defun orgtrello-api/add-checklist (card-id name)
   "Add a checklist to a card"
-  (orgtrello-hash/make-hash :post
+  (orgtrello-hash/make-hash "POST"
              (format "/cards/%s/checklists" card-id)
              `(("name" . ,name))))
 
 (defun orgtrello-api/update-checklist (checklist-id name)
   "Update the checklist's name"
-  (orgtrello-hash/make-hash :put
+  (orgtrello-hash/make-hash "PUT"
              (format "/checklists/%s" checklist-id)
              `(("name" . ,name))))
 
 (defun orgtrello-api/get-checklists (card-id)
   "List the checklists of a card"
-  (orgtrello-hash/make-hash :get (format "/cards/%s/checklists" card-id)))
+  (orgtrello-hash/make-hash "GET" (format "/cards/%s/checklists" card-id)))
 
 (defun orgtrello-api/get-checklist (checklist-id)
   "Retrieve all the information from a checklist"
-  (orgtrello-hash/make-hash :get (format "/checklists/%s" checklist-id)))
+  (orgtrello-hash/make-hash "GET" (format "/checklists/%s" checklist-id)))
 
 (defun orgtrello-api/delete-checklist (checklist-id)
   "Delete a checklist with checklist-id"
-  (orgtrello-hash/make-hash :delete (format "/checklists/%s" checklist-id)))
+  (orgtrello-hash/make-hash "DELETE" (format "/checklists/%s" checklist-id)))
 
 (defun orgtrello-api/add-tasks (checklist-id name &optional checked)
   "Add todo tasks (trello items) to a checklist with id 'id'"
   (let* ((payload (if checked
                       `(("name"  . ,name) ("checked" . ,checked))
                     `(("name" . ,name)))))
-    (orgtrello-hash/make-hash :post (format "/checklists/%s/checkItems" checklist-id) payload)))
+    (orgtrello-hash/make-hash "POST" (format "/checklists/%s/checkItems" checklist-id) payload)))
 
 (defun orgtrello-api/update-task (card-id checklist-id task-id name &optional state)
   "Update a task"
@@ -264,17 +264,17 @@
                       `(("name"  . ,name) ("state" . ,state))
                     `(("name" . ,name)))))
     (orgtrello-hash/make-hash
-     :put
+     "PUT"
      (format "/cards/%s/checklist/%s/checkItem/%s" card-id checklist-id task-id)
      payload)))
 
 (defun orgtrello-api/get-tasks (checklist-id)
   "List the checklist items."
-    (orgtrello-hash/make-hash :get (format "/checklists/%s/checkItems/" checklist-id)))
+    (orgtrello-hash/make-hash "GET" (format "/checklists/%s/checkItems/" checklist-id)))
 
 (defun orgtrello-api/delete-task (checklist-id task-id)
   "Delete a task with id task-id"
-  (orgtrello-hash/make-hash :delete (format "/checklists/%s/checkItems/%s" checklist-id task-id)))
+  (orgtrello-hash/make-hash "DELETE" (format "/checklists/%s/checkItems/%s" checklist-id task-id)))
 
 (message "org-trello - orgtrello-api loaded!")
 
@@ -336,13 +336,6 @@
   "Extract the closed property of the entity"
   (assoc-default 'closed entity-data))
 
-(defun orgtrello-query/--compute-method (method)
-  "Given the keywords :get, :post, :put, :delete, map them into standard uppercase string."
-  (cond ((eq :get method)    "GET")
-        ((eq :put method)    "PUT")
-        ((eq :post method)   "POST")
-        ((eq :delete method) "DELETE")))
-
 (defun orgtrello-query/--compute-url (server uri)
   "Compute the trello url from the given uri."
   (format "%s%s" server uri))
@@ -366,7 +359,7 @@
          (sync   (orgtrello-query/--sync   query-map)))
     (request (orgtrello-query/--compute-url server uri)
              :sync    sync
-             :type    (orgtrello-query/--compute-method method)
+             :type    method
              :params  (orgtrello-query/--authentication-params)
              :parser  'json-read
              :success (if success-callback success-callback 'standard-success-callback)
@@ -380,7 +373,7 @@
          (sync    (orgtrello-query/--sync   query-map)))
     (request (orgtrello-query/--compute-url server uri)
              :sync    sync
-             :type    (orgtrello-query/--compute-method method)
+             :type    method
              :params  (orgtrello-query/--authentication-params)
              :headers '(("Content-type" . "application/json"))
              :data    (json-encode payload)
@@ -395,15 +388,15 @@
          (sync   (orgtrello-query/--sync   query-map)))
     (request (orgtrello-query/--compute-url server uri)
              :sync    sync
-             :type    (orgtrello-query/--compute-method method)
+             :type    method
              :params  (orgtrello-query/--authentication-params)
              :success (if success-callback success-callback 'standard-success-callback)
              :error   (if error-callback error-callback 'standard-error-callback))))
 
 (defun orgtrello-query/--dispatch-http-query (method)
-  (cond ((eq :get method)                        'orgtrello-query/--get)
-        ((or (eq :post method) (eq :put method)) 'orgtrello-query/--post-or-put)
-        ((eq :delete method)                     'orgtrello-query/--delete)))
+  (cond ((string= "GET" method)                              'orgtrello-query/--get)
+        ((or (string= "POST" method) (string= "PUT" method)) 'orgtrello-query/--post-or-put)
+        ((string= "DELETE" method)                           'orgtrello-query/--delete)))
 
 (defun orgtrello-query/--http (server query-map &optional sync success-callback error-callback)
   "HTTP query the server with the query-map."
@@ -465,6 +458,7 @@
 
 (defun orgtrello-proxy/http (query-map &optional sync success-callback error-callback)
   "Query the trello api asynchronously."
+  (message "Proxy request: %S\n" query-map)
   (orgtrello-query/--http *ORGTRELLO-PROXY-URL* query-map sync success-callback error-callback))
 
 (defvar orgtrello-query/--app-routes '( ;; fool around to understand how routing works
@@ -499,9 +493,9 @@
 
 (defun orgtrello-proxy/--dispatch-http-query (method)
   "Dispach query function depending on the http method input parameter."
-  (cond ((eq "GET" method)                         'orgtrello-proxy/--get)
-        ((or (eq "POST" method) (eq "PUT" method)) 'orgtrello-proxy/--post-or-put)
-        ((eq "DELETE" method)                      'orgtrello-proxy/--delete)))
+  (cond ((string= "GET" method)                              'orgtrello-proxy/--get)
+        ((or (string= "POST" method) (string= "PUT" method)) 'orgtrello-proxy/--post-or-put)
+        ((string= "DELETE" method)                           'orgtrello-proxy/--delete)))
 
 (defun orgtrello-proxy/--elnode-proxy (httpcon)
   "A simple handler to extract the params information and make the request to trello."
