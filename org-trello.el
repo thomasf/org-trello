@@ -357,17 +357,6 @@
   "Standard success callback"
   (message "Success."))
 
-(cl-defun orgtrello-query/--delete-success-callback (&key data response &allow-other-keys)
-  "Callback function called at the end of a successful delete request."
-  (progn
-    (org-back-to-heading t)
-    (org-delete-property *ORGTRELLO-ID*)
-    (hide-subtree)
-    (beginning-of-line)
-    (kill-line)
-    (kill-line)
-    (message "Entity deleted!")))
-
 (defun orgtrello-query/--authentication-params ()
   "Generates the list of http authentication parameters"
   `((key . ,*consumer-key*) (token . ,*access-token*)))
@@ -440,30 +429,41 @@
 ;; #################### orgtrello-proxy
 
 (defvar *ORGTRELLO-PROXY-PORT* "8009")
-(defvar *ORGTRELLO-PROXY-URI* "/proxy")
-(defvar *ORGTRELLO-PROXY-URL* (format "http://localhost:%s%s" *ORGTRELLO-PROXY-PORT* *ORGTRELLO-PROXY-URI*))
+(defvar *ORGTRELLO-PROXY-URL*(format "http://localhost:%s/proxy/" *ORGTRELLO-PROXY-PORT*))
 
-(defun orgtrello-proxy/--standard-success-callback (metadata)
+(defun orgtrello-proxy/--standard-success-callback (position)
   "Return a callback able to update the org file."
-  (let ((position (assoc-default 'position metadata)))
-    (cl-defun orgtrello-query/--post-put-success-callback-update-id (&key data &allow-other-keys)
-      "Called back function at the end of the post/put request to update the trello id in the org-mode file."
-      (let* ((orgtrello-query/--entry-new-id (orgtrello-query/--id data))
-             (orgtrello-query/--entry-name   (orgtrello-query/--name data)))
-        ;; will update via tag the trello id of the new persisted data (if needed)
-        (save-excursion
-          ;; Get back to the buffer
-          (goto-char position)
-          ;; now we extract the data
-          (let* ((orgtrello-query/--entry-metadata (orgtrello-data/metadata))
-                 (orgtrello-query/--entry-id       (orgtrello/--id orgtrello-query/--entry-metadata)))
-            (if orgtrello-query/--entry-id ;; id already present in the org-mode file
-                ;; no need to add another
-                (message "Entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-id)
-              (progn
-                ;; not present, this was just created, we add a simple property
-                (org-set-property *ORGTRELLO-ID* orgtrello-query/--entry-new-id)
-                (message "Newly entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-new-id)))))))))
+  (cl-defun orgtrello-query/--post-put-success-callback-update-id (&key data &allow-other-keys)
+    "Called back function at the end of the post/put request to update the trello id in the org-mode file."
+    (let* ((orgtrello-query/--entry-new-id (orgtrello-query/--id data))
+           (orgtrello-query/--entry-name   (orgtrello-query/--name data)))
+      ;; will update via tag the trello id of the new persisted data (if needed)
+      (save-excursion
+        ;; Get back to the buffer
+        (goto-char position)
+        ;; now we extract the data
+        (let* ((orgtrello-query/--entry-metadata (orgtrello-data/metadata))
+               (orgtrello-query/--entry-id       (orgtrello/--id orgtrello-query/--entry-metadata)))
+          (if orgtrello-query/--entry-id ;; id already present in the org-mode file
+              ;; no need to add another
+              (message "Entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-id)
+            (progn
+              ;; not present, this was just created, we add a simple property
+              (org-set-property *ORGTRELLO-ID* orgtrello-query/--entry-new-id)
+              (message "Newly entity '%s' synced with id '%s'" orgtrello-query/--entry-name orgtrello-query/--entry-new-id))))))))
+
+(defun orgtrello-proxy/--delete-standard-success-callback (position)
+  (cl-defun orgtrello-proxy/--delete-success-callback (&key data response &allow-other-keys)
+    "Callback function called at the end of a successful delete request."
+    (save-excursion
+      (org-goto position)
+      (org-back-to-heading t)
+      (org-delete-property *ORGTRELLO-ID*)
+      (hide-subtree)
+      (beginning-of-line)
+      (kill-line)
+      (kill-line))
+    (message "Entity deleted!")))
 
 (defun orgtrello-proxy/http (query-map &optional sync success-callback error-callback)
   "Query the trello api asynchronously."
@@ -472,7 +472,7 @@
 (defvar orgtrello-query/--app-routes '( ;; fool around to understand how routing works
                                        ("^localhost//test/" . orgtrello-proxy/--elnode-testing)
                                        ;; proxy routine
-                                       ((format "^localhost/%s/" *ORGTRELLO-PROXY-URI*) . orgtrello-proxy/--elnode-proxy)
+                                       ( "^localhost/proxy/" . orgtrello-proxy/--elnode-proxy)
                                        ;; whatever...
                                        ("^.*//\\(.*\\)" . elnode-webserver)))
 
@@ -487,6 +487,24 @@
      ("elnode-http-query" elnode-http-query)
      ("elnode-http-params" elnode-http-params))))
 
+(defun orgtrello-proxy/--get (query-map &optional position sync)
+  "GET on trello with the callback"
+  (orgtrello-query/http-trello query-map sync))
+
+(defun orgtrello-proxy/--post-or-put (query-map &optional position sync)
+  "POST or PUT"
+  (orgtrello-query/http-trello query-map sync (orgtrello-proxy/--standard-success-callback position)))
+
+(defun orgtrello-proxy/--delete (query-map &optional position sync)
+  "DELETE"
+  (orgtrello-query/http-trello query-map sync (orgtrello-proxy/--delete-standard-success-callback position)))
+
+(defun orgtrello-proxy/--dispatch-http-query (method)
+  "Dispach query function depending on the http method input parameter."
+  (cond ((eq "GET" method)                         'orgtrello-proxy/--get)
+        ((or (eq "POST" method) (eq "PUT" method)) 'orgtrello-proxy/--post-or-put)
+        ((eq "DELETE" method)                      'orgtrello-proxy/--delete)))
+
 (defun orgtrello-proxy/--elnode-proxy (httpcon)
   "A simple handler to extract the params information and make the request to trello."
   (let* ((params     (elnode-http-params httpcon))
@@ -494,15 +512,16 @@
          (uri        (assoc-default 'uri params))
          (payload    (assoc-default 'params params))
          (query-map  (orgtrello-hash/make-hash method uri payload))
-         (position   (assoc-default 'position params)))
-    (message "Request to trello - %s %s %S\n%S" method uri payload query-map)
-    (orgtrello-proxy/http query-map t (orgtrello-proxy/--standard-success-callback position))))
+         (position   (assoc-default 'position params))
+         (fn-dispatch (orgtrello-proxy/--dispatch-http-query method)))
+    (message "orgtrello-proxy - Request to trello - %s %s body: %S\nquery: %S" method uri payload query-map)
+    (funcall fn-dispatch query-map position t)))
 
 (defun orgtrello-proxy/--proxy-handler (httpcon)
   "Launch function to start the proxy"
   (elnode-hostpath-dispatcher httpcon orgtrello-query/--app-routes))
 
-;; (elnode-start 'orgtrello-proxy/--proxy-handler :port 8009)
+;; (elnode-start 'orgtrello-proxy/--proxy-handler :port *ORGTRELLO-PROXY-PORT*)
 
 (message "org-trello - orgtrello-proxy loaded!")
 
@@ -748,7 +767,7 @@
                 ;; set the consumer-key to make a pointer to get back to when the request is finished
                 (orgtrello/--set-marker)
                 ;; request
-                (orgtrello-proxy/http query-http-or-error-msg sync 'orgtrello-query/--post-put-success-callback-update-id)
+                (orgtrello-proxy/http query-http-or-error-msg sync)
                 "Synchronizing simple entity done!")
             ;; else it's a string to display
             query-http-or-error-msg)))))
@@ -939,7 +958,7 @@
         (let ((query-http-or-error-msg (orgtrello/--dispatch-delete (gethash :current entry-metadata) (gethash :parent entry-metadata))))
           (if (hash-table-p query-http-or-error-msg)
               (progn
-                (orgtrello-proxy/http query-http-or-error-msg sync 'orgtrello-query/--delete-success-callback)
+                (orgtrello-proxy/http query-http-or-error-msg sync)
                 "Delete entity done!")
             query-http-or-error-msg))
       "Entity not synchronized on trello yet!")))
